@@ -33,6 +33,7 @@ router.post("/", async (req, res) => {
     }
 });
 
+//change name of a collection
 router.put("/:id", async (req, res) => {
     try {
         const { name } = req.body;
@@ -47,6 +48,24 @@ router.put("/:id", async (req, res) => {
         }
         res.json(updateCollection.rows[0]);
 
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
+//delete a collection
+router.delete("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deleteCollection = await pool.query(
+            "DELETE FROM collections WHERE id = $1", [id]
+        );
+
+        if (deleteCollection.rowCount === 0) {
+            return res.status(404).send("Collection not found.");
+        }
+        res.json("Collection successfully deleted!");
     } catch (err) {
         console.error(err.message);
         res.status(500).send("Server Error");
