@@ -1,4 +1,4 @@
-# DigiWeave 🎨
+# DigiWeave
 
 *A full-stack web application for creatives and technical users to collect, annotate, and organize multimedia inspiration on a free-form digital canvas.*
 
@@ -12,7 +12,7 @@ This project is currently in active development.
 
 ---
 
-## ## Current Features ✨
+## ## Current Features
 
 The application currently has the following features implemented:
 
@@ -23,7 +23,7 @@ The application currently has the following features implemented:
 
 ---
 
-## ## Tech Stack 💻
+## ## Tech Stack
 
 * **Backend:** Node.js, Express.js
 * **Frontend:** React, React Router
