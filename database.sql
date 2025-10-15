@@ -14,3 +14,14 @@ CREATE TABLE collections (
     layout_type VARCHAR(50) DEFAULT 'free-form',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create the items table with a reference to the collections table
+CREATE TABLE items (
+    id SERIAL PRIMARY KEY,
+    collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    position_x INTEGER DEFAULT 0,
+    position_y INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
