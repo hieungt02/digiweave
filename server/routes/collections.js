@@ -72,4 +72,19 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
+//get all items in a collection
+router.get("/:id/items", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const allItems = await pool.query(
+            "SELECT * FROM items WHERE collection_id = $1", [id]
+        );
+        res.json(allItems.rows);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
 module.exports = router;

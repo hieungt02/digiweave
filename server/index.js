@@ -16,8 +16,12 @@ const PORT = 3001;
 //tells our server how to respond when someone visits http://localhost/3001/
 
 //ROUTES:
-//Any request to /api/cillections will be handled by our collections router
+//Any request to /api/collections will be handled by our collections router
 app.use('/api/collections', require('./routes/collections'));
+
+//Any request to /api/items will be handled by our collections router
+app.use('/api/items', require('./routes/items'));
+
 
 app.get('/', (req, res) => {
     res.send('Hello from the server!');
