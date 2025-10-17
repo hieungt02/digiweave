@@ -17,11 +17,46 @@ router.post("/", async (req, res) => {
     }
 });
 
-//PUT: Update an item
+// PUT: Update an item
+router.put("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { content } = req.body; // For now, we'll just allow updating the content
 
+        const updateItem = await pool.query(
+            "UPDATE items SET content = $1 WHERE id = $2 RETURNING *",
+            [content, id]
+        );
 
+        if (updateItem.rowCount === 0) {
+            return res.status(404).json("Item not found.");
+        }
+
+        res.json(updateItem.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
 
 //DELETE: Delete an item
+router.delete("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deleteItem = await pool.query(
+            "DELETE FROM items WHERE id = $1",
+            [id]
+        );
 
+        if (deleteItem.rowCount === 0) {
+            return res.status(404).json("Item not found.");
+        }
+
+        res.json("Item was deleted!");
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
 
 module.exports = router;

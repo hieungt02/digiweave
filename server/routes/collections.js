@@ -87,4 +87,20 @@ router.get("/:id/items", async (req, res) => {
     }
 });
 
+
+//Get all annotations in a specific collection
+router.get("/:id/annotations", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const allAnnotations = await pool.query(
+            "SELECT * FROM annotations WHERE collection_id = $1",
+            [id]
+        );
+        res.json(allAnnotations.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
 module.exports = router;

@@ -19,8 +19,11 @@ const PORT = 3001;
 //Any request to /api/collections will be handled by our collections router
 app.use('/api/collections', require('./routes/collections'));
 
-//Any request to /api/items will be handled by our collections router
+//Any request to /api/items will be handled by our items router
 app.use('/api/items', require('./routes/items'));
+
+//Any request to /api/annotations will be handleds by router
+app.use('/api/annotations', require('./routes/annotations'));
 
 
 app.get('/', (req, res) => {
