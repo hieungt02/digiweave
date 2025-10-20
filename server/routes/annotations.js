@@ -37,6 +37,28 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// PUT: Update an annotation's position
+router.put("/:id/position", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { position_x, position_y } = req.body;
+
+        const updateAnnotationPosition = await pool.query(
+            "UPDATE annotations SET position_x = $1, position_y = $2 WHERE id = $3 RETURNING *",
+            [position_x, position_y, id]
+        );
+
+        if (updateAnnotationPosition.rowCount === 0) {
+            return res.status(404).json("Annotation not found.");
+        }
+
+        res.json(updateAnnotationPosition.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
 // DELETE an annotation
 router.delete('/:id', async (req, res) => {
     try {
