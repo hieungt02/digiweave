@@ -1,147 +1,97 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import AddItem from './AddItem'; //import AddItem
+import { useDrop } from 'react-dnd';
+import DraggableItem from './DraggableItem';
+import AddItem from './AddItem';
+import DraggableAnnotation from './DraggableAnnotation';
+// 1. Import the ItemTypes from both draggable components
+import { ItemTypes as AnnotationItemTypes } from './DraggableAnnotation';
+
+const ItemTypes = {
+  ITEM: 'item',
+};
 
 function CollectionView() {
-    // 1. 'useParams' gets the { id: '...' } object from the URL.
-    const { id } = useParams(); 
-
-    // 2. State to hold the items for this collection.
+    const { id } = useParams();
     const [items, setItems] = useState([]);
-
-    const [annotations, setAnnotations] = useState([]); // New state for annotations
-    const [editingItem, setEditingItem] = useState(null); // Holds the item object being edited
-    const [editText, setEditText] = useState(''); // Holds the text for the edit input field
+    const [annotations, setAnnotations] = useState([]);
+    const canvasRef = useRef(null);
 
     const fetchData = useCallback(async () => {
         try {
-            // Fetch both items and annotations
-            const itemsResponse = await fetch(`/api/collections/${id}/items`);
-            const itemsData = await itemsResponse.json();
-            setItems(itemsData);
-
-            const annotationsResponse = await fetch(`/api/collections/${id}/annotations`);
-            const annotationsData = await annotationsResponse.json();
-            setAnnotations(annotationsData);
-
+            const itemsRes = await fetch(`/api/collections/${id}/items`);
+            setItems(await itemsRes.json());
+            const annotationsRes = await fetch(`/api/collections/${id}/annotations`);
+            setAnnotations(await annotationsRes.json());
         } catch (err) {
             console.error("Failed to fetch data:", err);
         }
     }, [id]);
 
-    // useEffect now calls our fetchItems function
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    // New function to handle deleting an item
-    const handleDeleteItem = async (itemId) => {
-        if (window.confirm('Are you sure you want to delete this item?')) {
-            try {
-                // We need to build the full API path for the item
-                await fetch(`/api/items/${itemId}`, {
-                    method: 'DELETE',
-                });
-                // Refresh the list after deleting
-                fetchData();
-            } catch (error) {
-                console.error("Failed to delete item:", error);
+    const moveItem = useCallback((itemId, left, top) => {
+        setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, position_x: left, position_y: top } : item)));
+    }, []);
+
+    // 2. Create a new move function for annotations
+    const moveAnnotation = useCallback((annotationId, left, top) => {
+        setAnnotations((prev) => prev.map((ann) => (ann.id === annotationId ? { ...ann, position_x: left, position_y: top } : ann)));
+    }, []);
+
+    // 3. Update the useDrop hook
+    const [, drop] = useDrop(() => ({
+        // It now accepts an array of types
+        accept: [ItemTypes.ITEM, AnnotationItemTypes.ANNOTATION],
+        async drop(item, monitor) {
+            const clientOffset = monitor.getClientOffset();
+            if (clientOffset && canvasRef.current) {
+                const canvasRect = canvasRef.current.getBoundingClientRect();
+                const left = Math.round(clientOffset.x - canvasRect.left);
+                const top = Math.round(clientOffset.y - canvasRect.top);
+                const type = monitor.getItemType(); // Get the type of the dropped item
+
+                // Use the type to call the correct function and API endpoint
+                if (type === ItemTypes.ITEM) {
+                    moveItem(item.id, left, top);
+                    await fetch(`/api/items/${item.id}/position`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ position_x: left, position_y: top }),
+                    });
+                } else if (type === AnnotationItemTypes.ANNOTATION) {
+                    moveAnnotation(item.id, left, top);
+                    await fetch(`/api/annotations/${item.id}/position`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ position_x: left, position_y: top }),
+                    });
+                }
             }
-        }
-    };
-
-    // When a user clicks "Edit", set the state to enter 'edit mode'
-    const handleEditClick = (item) => {
-        setEditingItem(item);
-        setEditText(item.content);
-    };
-
-    // When a user clicks "Save", send the update to the API
-    const handleUpdateItem = async (itemId) => {
-        try {
-            await fetch(`/api/items/${itemId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: editText }),
-            });
-        
-            // Exit 'edit mode' and refresh the items list
-            setEditingItem(null);
-            fetchData();
-
-        } catch (error) {
-            console.error("Failed to update item:", error);
-        }
-    };    
+            return undefined;
+        },
+    }), [moveItem, moveAnnotation]);
 
     return (
         <div>
             <Link to="/">&larr; Back to all collections</Link>
             <AddItem collectionId={id} onItemAdded={fetchData} />
             <hr />
-
-            <h2>Collection Items</h2>
-            {items.length > 0 ? (
-                <ul>
-                    {items.map(item => (
-                        <li key={item.id} style={{ marginBottom: '15px' }}>
-                            {/* Item rendering logic remains the same */}
-                            {editingItem && editingItem.id === item.id ? (
-                                <>
-                                    <input 
-                                        type="text" 
-                                        value={editText} 
-                                        onChange={(e) => setEditText(e.target.value)} 
-                                    />
-                                    <button onClick={() => handleUpdateItem(item.id)} style={{ marginLeft: '10px' }}>Save</button>
-                                </>
-                            ) : (
-                                <>
-                                    {item.content} ({item.type})
-                                    <button onClick={() => handleEditClick(item)} style={{ marginLeft: '10px' }}>Edit ✏️</button>
-                                    <button onClick={() => handleDeleteItem(item.id)} style={{ marginLeft: '10px' }}>Delete</button>
-                                </>
-                            )}
-
-                            {/* New: Display annotations specific to THIS item */}
-                            <ul style={{ marginTop: '5px' }}>
-                                {annotations
-                                    .filter(annotation => annotation.item_id === item.id)
-                                    .map(itemAnnotation => (
-                                        <li key={itemAnnotation.id}>
-                                            <em style={{ color: '#555' }}>- {itemAnnotation.content}</em>
-                                        </li>
-                                    ))
-                                }
-                            </ul>
-                        </li>
+            <h2>Collection Canvas 🎨</h2>
+            <div ref={canvasRef} style={{ position: 'relative', width: '100%', height: '500px', border: '1px solid black', backgroundColor: '#f0f0f0' }}>
+                <div ref={drop} style={{ width: '100%', height: '100%' }}>
+                    {items.map((item) => (
+                        <DraggableItem key={`item-${item.id}`} item={item} />
                     ))}
-                </ul>
-            ) : (
-                <p>No items in this collection yet. Add one above!</p>
-            )}
-
-            <hr />
-
-            {/* New: Display ONLY free-floating annotations */}
-            <h2>General Annotations ✍️</h2>
-            {annotations.filter(a => a.item_id === null).length > 0 ? (
-                <ul>
-                    {annotations
-                        .filter(annotation => annotation.item_id === null)
-                        .map(collectionAnnotation => (
-                            <li key={collectionAnnotation.id}>
-                                {collectionAnnotation.content}
-                            </li>
-                        ))
-                    }
-                </ul>
-            ) : (
-                <p>No general annotations in this collection yet.</p>
-            )}
+                    {annotations.map((annotation) => (
+                        <DraggableAnnotation key={`annotation-${annotation.id}`} annotation={annotation} />
+                    ))}
+                </div>
+            </div>
         </div>
     );
-
 }
 
 export default CollectionView;
