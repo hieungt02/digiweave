@@ -4,7 +4,7 @@ import { useDrop } from 'react-dnd';
 import DraggableItem from './DraggableItem';
 import AddItem from './AddItem';
 import DraggableAnnotation from './DraggableAnnotation';
-// 1. Import the ItemTypes from both draggable components
+import AddAnnotation from './AddAnnotation'; // Import the AddAnnotation form
 import { ItemTypes as AnnotationItemTypes } from './DraggableAnnotation';
 
 const ItemTypes = {
@@ -16,6 +16,8 @@ function CollectionView() {
     const [items, setItems] = useState([]);
     const [annotations, setAnnotations] = useState([]);
     const canvasRef = useRef(null);
+    const [annotatingItemId, setAnnotatingItemId] = useState(null);
+    const [newAnnotationText, setNewAnnotationText] = useState('');
 
     const fetchData = useCallback(async () => {
         try {
@@ -32,18 +34,71 @@ function CollectionView() {
         fetchData();
     }, [fetchData]);
 
+    // --- Item Handlers ---
+    const handleDeleteItem = async (itemId) => {
+        if (window.confirm('Are you sure you want to delete this item?')) {
+            await fetch(`/api/items/${itemId}`, { method: 'DELETE' });
+            fetchData();
+        }
+    };
+    const handleEditItem = async (item) => {
+        const newContent = window.prompt("Enter new content:", item.content);
+        if (newContent && newContent !== item.content) {
+            await fetch(`/api/items/${item.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newContent }),
+            });
+            fetchData();
+        }
+    };
+
+    // --- Annotation Handlers ---
+    const handleDeleteAnnotation = async (annotationId) => {
+        if (window.confirm('Are you sure you want to delete this note?')) {
+            await fetch(`/api/annotations/${annotationId}`, { method: 'DELETE' });
+            fetchData();
+        }
+    };
+    const handleEditAnnotation = async (annotation) => {
+        const newContent = window.prompt("Enter new content for the note:", annotation.content);
+        if (newContent && newContent !== annotation.content) {
+            await fetch(`/api/annotations/${annotation.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newContent }),
+            });
+            fetchData();
+        }
+    };
+    const handleAddItemAnnotation = async (itemId) => {
+        if (!newAnnotationText) return;
+        await fetch('/api/annotations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                collection_id: id,
+                item_id: itemId,
+                content: newAnnotationText,
+            }),
+        });
+        setAnnotatingItemId(null);
+        setNewAnnotationText('');
+        fetchData();
+    };
+
+
+    // --- Drag and Drop Logic ---
     const moveItem = useCallback((itemId, left, top) => {
         setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, position_x: left, position_y: top } : item)));
     }, []);
 
-    // 2. Create a new move function for annotations
     const moveAnnotation = useCallback((annotationId, left, top) => {
         setAnnotations((prev) => prev.map((ann) => (ann.id === annotationId ? { ...ann, position_x: left, position_y: top } : ann)));
     }, []);
 
-    // 3. Update the useDrop hook
     const [, drop] = useDrop(() => ({
-        // It now accepts an array of types
+        // This 'accept' property was missing from your code
         accept: [ItemTypes.ITEM, AnnotationItemTypes.ANNOTATION],
         async drop(item, monitor) {
             const clientOffset = monitor.getClientOffset();
@@ -51,9 +106,8 @@ function CollectionView() {
                 const canvasRect = canvasRef.current.getBoundingClientRect();
                 const left = Math.round(clientOffset.x - canvasRect.left);
                 const top = Math.round(clientOffset.y - canvasRect.top);
-                const type = monitor.getItemType(); // Get the type of the dropped item
+                const type = monitor.getItemType();
 
-                // Use the type to call the correct function and API endpoint
                 if (type === ItemTypes.ITEM) {
                     moveItem(item.id, left, top);
                     await fetch(`/api/items/${item.id}/position`, {
@@ -74,19 +128,44 @@ function CollectionView() {
         },
     }), [moveItem, moveAnnotation]);
 
+
     return (
         <div>
             <Link to="/">&larr; Back to all collections</Link>
             <AddItem collectionId={id} onItemAdded={fetchData} />
+            <AddAnnotation collectionId={id} onAnnotationAdded={fetchData} />
             <hr />
             <h2>Collection Canvas 🎨</h2>
             <div ref={canvasRef} style={{ position: 'relative', width: '100%', height: '500px', border: '1px solid black', backgroundColor: '#f0f0f0' }}>
                 <div ref={drop} style={{ width: '100%', height: '100%' }}>
                     {items.map((item) => (
-                        <DraggableItem key={`item-${item.id}`} item={item} />
+                        <div key={`item-wrapper-${item.id}`}>
+                            <DraggableItem
+                                item={item}
+                                onDeleteItem={handleDeleteItem}
+                                onEditItem={handleEditItem}
+                            />
+                            {/* Logic to add notes to this specific item */}
+                            <div style={{ position: 'absolute', left: item.position_x, top: item.position_y - 30, zIndex: 20 }}>
+                                {annotatingItemId === item.id ? (
+                                    <>
+                                        <input type="text" value={newAnnotationText} onChange={(e) => setNewAnnotationText(e.target.value)} placeholder="Add note..." />
+                                        <button onClick={() => handleAddItemAnnotation(item.id)}>Save</button>
+                                        <button onClick={() => setAnnotatingItemId(null)}>X</button>
+                                    </>
+                                ) : (
+                                    <button onClick={() => setAnnotatingItemId(item.id)}>Add Note +</button>
+                                )}
+                            </div>
+                        </div>
                     ))}
                     {annotations.map((annotation) => (
-                        <DraggableAnnotation key={`annotation-${annotation.id}`} annotation={annotation} />
+                        <DraggableAnnotation
+                            key={`annotation-${annotation.id}`}
+                            annotation={annotation}
+                            onDeleteAnnotation={handleDeleteAnnotation}
+                            onEditAnnotation={handleEditAnnotation}
+                        />
                     ))}
                 </div>
             </div>
