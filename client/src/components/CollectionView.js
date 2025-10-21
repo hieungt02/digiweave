@@ -16,8 +16,10 @@ function CollectionView() {
     const [items, setItems] = useState([]);
     const [annotations, setAnnotations] = useState([]);
     const canvasRef = useRef(null);
+    const [hoveredItemId, setHoveredItemId] = useState(null);
     const [annotatingItemId, setAnnotatingItemId] = useState(null);
     const [newAnnotationText, setNewAnnotationText] = useState('');
+    
 
     const fetchData = useCallback(async () => {
         try {
@@ -144,6 +146,8 @@ function CollectionView() {
                                 item={item}
                                 onDeleteItem={handleDeleteItem}
                                 onEditItem={handleEditItem}
+                                hoveredItemId={hoveredItemId}      // Pass the state
+                                setHoveredItemId={setHoveredItemId}  // Pass the setter function
                             />
                             {/* Logic to add notes to this specific item */}
                             <div style={{ position: 'absolute', left: item.position_x, top: item.position_y - 30, zIndex: 20 }}>
@@ -165,6 +169,7 @@ function CollectionView() {
                             annotation={annotation}
                             onDeleteAnnotation={handleDeleteAnnotation}
                             onEditAnnotation={handleEditAnnotation}
+                            hoveredItemId={hoveredItemId} // Pass the state
                         />
                     ))}
                 </div>

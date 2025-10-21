@@ -6,7 +6,7 @@ export const ItemTypes = {
 };
 
 // The component now accepts onDeleteAnnotation and onEditAnnotation as props
-function DraggableAnnotation({ annotation, onDeleteAnnotation, onEditAnnotation }) {
+function DraggableAnnotation({ annotation, onDeleteAnnotation, onEditAnnotation, hoveredItemId }) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ItemTypes.ANNOTATION,
     item: { id: annotation.id, left: annotation.position_x, top: annotation.position_y },
@@ -15,6 +15,9 @@ function DraggableAnnotation({ annotation, onDeleteAnnotation, onEditAnnotation 
     }),
   }));
 
+  // 2. Check if this annotation is linked to the hovered item
+  const isLinked = hoveredItemId === annotation.item_id;
+
   return (
     <div
       ref={drag}
@@ -22,12 +25,14 @@ function DraggableAnnotation({ annotation, onDeleteAnnotation, onEditAnnotation 
         position: 'absolute',
         left: annotation.position_x,
         top: annotation.position_y,
-        border: '1px dashed #999',
+        // 3. Change the border style if it's linked
+        border: isLinked ? '2px solid #007bff' : '1px dashed #999',
         backgroundColor: '#FFFFE0',
         cursor: 'move',
         opacity: isDragging ? 0.5 : 1,
         padding: '8px',
         boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+        zIndex: isLinked ? 100 : 10, // Bring linked annotations to the front
       }}
     >
       {/* Container for the control buttons */}

@@ -6,8 +6,8 @@ const ItemTypes = {
   ITEM: 'item',
 };
 
-// 1. The component now accepts the new props: onDeleteItem and onEditItem
-function DraggableItem({ item, onDeleteItem, onEditItem }) {
+// 1. Component now accepts hoveredItemId and setHoveredItemId
+function DraggableItem({ item, onDeleteItem, onEditItem, hoveredItemId, setHoveredItemId }) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ItemTypes.ITEM,
     item: { id: item.id, left: item.position_x, top: item.position_y },
@@ -16,20 +16,27 @@ function DraggableItem({ item, onDeleteItem, onEditItem }) {
     }),
   }));
 
+  const isHovered = hoveredItemId === item.id;
+
   return (
     // The main container is still draggable
     <div
       ref={drag}
+      // 3. Add mouse enter/leave events to update the shared state
+      onMouseEnter={() => setHoveredItemId(item.id)}
+      onMouseLeave={() => setHoveredItemId(null)}
       style={{
         position: 'absolute',
         left: item.position_x,
         top: item.position_y,
-        border: '1px solid #ccc',
+        // 4. Change the border style based on the hover state
+        border: isHovered ? '2px solid #007bff' : '1px solid #ccc',
         backgroundColor: 'white',
         cursor: 'move',
         opacity: isDragging ? 0.5 : 1,
         width: '250px',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.1)', // Added a subtle shadow
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+        zIndex: isHovered ? 100 : 10, // Bring hovered item to the front
       }}
     >
       {/* 2. Add a container for the controls */}
