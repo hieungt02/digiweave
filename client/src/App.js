@@ -10,7 +10,7 @@ function App() {
   return (
     //Wrap everything inside the DndProvider
     <DndProvider backend={HTML5Backend}>
-      <div className="App">
+      <div className="app-container">
         <h1>DigiWeave</h1>
 
         <Routes>

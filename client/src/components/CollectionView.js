@@ -138,7 +138,7 @@ function CollectionView() {
             <AddAnnotation collectionId={id} onAnnotationAdded={fetchData} />
             <hr />
             <h2>Collection Canvas 🎨</h2>
-            <div ref={canvasRef} style={{ position: 'relative', width: '100%', height: '500px', border: '1px solid black', backgroundColor: '#f0f0f0' }}>
+            <div ref={canvasRef} className="canvas-container">
                 <div ref={drop} style={{ width: '100%', height: '100%' }}>
                     {items.map((item) => (
                         <div key={`item-wrapper-${item.id}`}>
