@@ -1,38 +1,119 @@
-.App {
-  text-align: center;
+/* --- YOUR DESIGN CONTROL PANEL --- */
+/* Change these variables to customize your app's theme! */
+:root {
+  --font-main: 'Helvetica Neue', sans-serif;
+  --color-primary: #007bff; /* A nice blue for highlights */
+  --color-background: #f8f9fa; /* Light gray page background */
+  --color-canvas: #ffffff; /* White canvas background */
+  --color-text: #212529; /* Dark text for readability */
+  --color-text-light: #6c757d; /* Lighter text for subtitles */
+  --card-border-color: #dee2e6;
+  --note-background: #fff3cd; /* A pleasant yellow for sticky notes */
+  --shadow-main: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --border-radius: 8px;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* --- GLOBAL STYLES --- */
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: var(--color-background);
+  color: var(--color-text);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+h1, h2, h3 {
+  color: var(--color-text);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+button {
+  background-color: var(--color-primary);
   color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.App-link {
-  color: #61dafb;
+button:hover {
+  background-color: #0056b3; /* A darker blue on hover */
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+input, select, textarea {
+  font-family: var(--font-main);
+  padding: 8px;
+  border: 1px solid var(--card-border-color);
+  border-radius: 4px;
+}
+
+/* --- LAYOUT & COMPONENT STYLES --- */
+.app-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  border: 1px solid var(--card-border-color);
+  background-color: var(--color-canvas);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-main);
+}
+
+.item-card {
+  position: absolute;
+  border: 1px solid var(--card-border-color);
+  background-color: white;
+  cursor: move;
+  width: 250px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-main);
+  transition: border 0.2s, z-index 0s 0.2s; /* Smooth transitions */
+}
+
+.item-card.hovered {
+  border: 2px solid var(--color-primary);
+  z-index: 100 !important; /* Ensure hovered item is on top */
+}
+
+.annotation-note {
+  position: absolute;
+  border: 1px dashed #999;
+  background-color: var(--note-background);
+  cursor: move;
+  padding: 8px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-main);
+  transition: border 0.2s, z-index 0s 0.2s;
+}
+
+.annotation-note.linked {
+  border: 2px solid var(--color-primary);
+  z-index: 100 !important;
+}
+
+.card-controls {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 10;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.2s;
+}
+
+/* Show controls when hovering over the card */
+.item-card:hover .card-controls,
+.annotation-note:hover .card-controls {
+  opacity: 1;
+}
+
+.card-controls button {
+  font-size: 10px;
+  padding: 2px 4px;
+  margin-left: 2px;
 }
