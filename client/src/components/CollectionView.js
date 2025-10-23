@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDrop } from 'react-dnd';
+import Modal from 'react-modal'
 import DraggableItem from './DraggableItem';
 import AddItem from './AddItem';
 import DraggableAnnotation from './DraggableAnnotation';
 import AddAnnotation from './AddAnnotation'; // Import the AddAnnotation form
 import { ItemTypes as AnnotationItemTypes } from './DraggableAnnotation';
+
+import { FaPlus } from 'react-icons/fa';
+
+Modal.setAppElement('#root');
 
 const ItemTypes = {
   ITEM: 'item',
@@ -19,6 +24,8 @@ function CollectionView() {
     const [hoveredItemId, setHoveredItemId] = useState(null);
     const [annotatingItemId, setAnnotatingItemId] = useState(null);
     const [newAnnotationText, setNewAnnotationText] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalContent, setModalContent] = useState(null);
     
 
     const fetchData = useCallback(async () => {
@@ -99,44 +106,82 @@ function CollectionView() {
         setAnnotations((prev) => prev.map((ann) => (ann.id === annotationId ? { ...ann, position_x: left, position_y: top } : ann)));
     }, []);
 
+    // --- Inside your CollectionView.js component ---
+
     const [, drop] = useDrop(() => ({
-        // This 'accept' property was missing from your code
         accept: [ItemTypes.ITEM, AnnotationItemTypes.ANNOTATION],
         async drop(item, monitor) {
-            const clientOffset = monitor.getClientOffset();
-            if (clientOffset && canvasRef.current) {
-                const canvasRect = canvasRef.current.getBoundingClientRect();
-                const left = Math.round(clientOffset.x - canvasRect.left);
-                const top = Math.round(clientOffset.y - canvasRect.top);
-                const type = monitor.getItemType();
+            // --- NEW, MORE PRECISE LOGIC ---
+            
+            // 1. Get all the necessary coordinates from the monitor
+            const initialClientOffset = monitor.getInitialClientOffset(); // Where the drag started on the screen
+            const initialSourceOffset = monitor.getInitialSourceClientOffset(); // The top-left corner of the item when drag started
+            const finalClientOffset = monitor.getClientOffset(); // The final cursor position on the screen
 
-                if (type === ItemTypes.ITEM) {
-                    moveItem(item.id, left, top);
-                    await fetch(`/api/items/${item.id}/position`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ position_x: left, position_y: top }),
-                    });
-                } else if (type === AnnotationItemTypes.ANNOTATION) {
-                    moveAnnotation(item.id, left, top);
-                    await fetch(`/api/annotations/${item.id}/position`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ position_x: left, position_y: top }),
-                    });
-                }
+            if (!initialClientOffset || !finalClientOffset || !initialSourceOffset || !canvasRef.current) {
+                return; // Exit if we don't have the info we need
             }
-            return undefined;
+
+            // 2. Calculate the offset of the click within the item
+            const clickOffsetInItem = {
+                x: initialClientOffset.x - initialSourceOffset.x,
+                y: initialClientOffset.y - initialSourceOffset.y,
+            };
+
+            // 3. Get the canvas's position on the page
+            const canvasRect = canvasRef.current.getBoundingClientRect();
+
+            // 4. Calculate the item's new top-left position by subtracting the click offset
+            const left = Math.round(finalClientOffset.x - canvasRect.left - clickOffsetInItem.x);
+            const top = Math.round(finalClientOffset.y - canvasRect.top - clickOffsetInItem.y);
+
+            const type = monitor.getItemType();
+
+            // 5. Update state and call the API with the corrected coordinates
+            if (type === ItemTypes.ITEM) {
+                moveItem(item.id, left, top);
+                await fetch(`/api/items/${item.id}/position`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ position_x: left, position_y: top }),
+                });
+            } else if (type === AnnotationItemTypes.ANNOTATION) {
+                moveAnnotation(item.id, left, top);
+                await fetch(`/api/annotations/${item.id}/position`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ position_x: left, position_y: top }),
+                });
+            }
         },
     }), [moveItem, moveAnnotation]);
+
+// ... rest of your CollectionView component
+    const openModal = (content) => {
+        setModalContent(content);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setModalContent(null);
+    };
+
+    const handleFormSubmit = () => {
+        fetchData();  // Refresh the data
+        closeModal(); // Close the modal
+    };
 
 
     return (
         <div>
-            <Link to="/">&larr; Back to all collections</Link>
-            <AddItem collectionId={id} onItemAdded={fetchData} />
-            <AddAnnotation collectionId={id} onAnnotationAdded={fetchData} />
-            <hr />
+            <div className="canvas-header">
+                <Link to="/">&larr; Back to all collections</Link>
+                <div style={{ margin: '20px 0' }}>
+                    <button onClick={() => openModal('item')}><FaPlus />Add Item</button>
+                    <button onClick={() => openModal('annotation')} style={{ marginLeft: '10px' }}>Add Annotation +</button>
+                </div>
+            </div>
             <h2>Collection Canvas 🎨</h2>
             <div ref={canvasRef} className="canvas-container">
                 <div ref={drop} style={{ width: '100%', height: '100%' }}>
@@ -174,6 +219,34 @@ function CollectionView() {
                     ))}
                 </div>
             </div>
+            <Modal
+                isOpen={isModalOpen}
+                onRequestClose={closeModal}
+                contentLabel="Add New"
+                style={{
+                    overlay: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        zIndex: 999 //Ensure overlay is on top of canvas
+                    },
+                    content: {
+                        top: '50%',
+                        left: '50%',
+                        right: 'auto',
+                        bottom: 'auto',
+                        marginRight: '-50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 1000
+                    },
+                }}
+            >
+                {modalContent === 'item' && (
+                    <AddItem collectionId={id} onItemAdded={handleFormSubmit} />
+                )}
+                {modalContent === 'annotation' && (
+                    <AddAnnotation collectionId={id} onAnnotationAdded={handleFormSubmit} />
+                )}
+                <button onClick={closeModal} style={{ marginTop: '10px' }}>Close</button>
+            </Modal>            
         </div>
     );
 }
