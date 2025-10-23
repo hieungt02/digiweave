@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 import ContentRenderer from './ContentRenderer';
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
 const ItemTypes = {
   ITEM: 'item',
@@ -35,8 +36,8 @@ function DraggableItem({ item, onDeleteItem, onEditItem, hoveredItemId, setHover
     >
       {/* 2. Add a container for the controls */}
       <div className="card-controls">
-        <button onClick={() => onEditItem(item)}>✏️</button>
-        <button onClick={() => onDeleteItem(item.id)}>❌</button>
+        <button onClick={() => onEditItem(item)} className="icon-button"><FaPencilAlt /></button>
+        <button onClick={() => onDeleteItem(item.id)} className="icon-button"><FaTrash /></button>
       </div>
       {/* 3. The content renderer is now inside its own div to handle padding */}
       <div style={{ padding: '8px' }}>

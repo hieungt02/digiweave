@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
 export const ItemTypes = {
   ANNOTATION: 'annotation',
@@ -31,8 +32,8 @@ function DraggableAnnotation({ annotation, onDeleteAnnotation, onEditAnnotation,
     >
       {/* Container for the control buttons */}
       <div className="card-controls">
-        <button onClick={() => onEditAnnotation(annotation)}>✏️</button>
-        <button onClick={() => onDeleteAnnotation(annotation.id)}>❌</button>
+        <button onClick={() => onEditAnnotation(annotation)} className="icon-button"><FaPencilAlt /></button>
+        <button onClick={() => onDeleteAnnotation(annotation.id)} className="icon-button"><FaTrash /></button>
       </div>
       <div style={{ paddingTop: '15px' }}> {/* Add padding to avoid overlap */}
         {annotation.content}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AddCollection from './AddCollection';
 import { Link } from 'react-router-dom';
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
 function CollectionsList() {
     const [collections, setCollections] = useState([]);
@@ -19,7 +20,28 @@ function CollectionsList() {
         fetchCollections();
     }, [fetchCollections]);
 
-    // Our new delete handler
+    // --- NEW: Function to handle updating a collection ---
+    const handleUpdateCollection = async (collection) => {
+        const newName = window.prompt("Enter new name for the collection:", collection.name);
+
+        // Proceed only if the user entered a new name that's different
+        if (newName && newName !== collection.name) {
+            try {
+                await fetch(`/api/collections/${collection.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: newName }),
+                });
+                // Refresh the list to show the new name
+                fetchCollections();
+            } catch (error) {
+                console.error("Failed to update collection:", error);
+            }
+        }
+    };
+
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this collection?')) {
             try {
@@ -44,9 +66,17 @@ function CollectionsList() {
                         <Link to={`/collections/${collection.id}`}>
                             {collection.name}
                         </Link>
-                        <button onClick={() => handleDelete(collection.id)} style={{ marginLeft: '10px' }}>
-                            Delete
-                        </button>
+                        <div style={{ marginLeft: '10px', display: 'inline-block' }}>
+                            {/* --- NEW: The Edit button --- */}
+                            <button onClick={() => handleUpdateCollection(collection)} 
+                                className="icon-button">
+                                <FaPencilAlt />
+                            </button>
+                            <button onClick={() => handleDelete(collection.id)}
+                                className="icon-button">
+                                <FaTrash />
+                            </button>
+                        </div>
                     </li>
                 ))}
             </ul>
